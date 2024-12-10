@@ -53,7 +53,8 @@ insert into plan_endpoints values(1,1),(1,2),(1,3),(2,1),(2,2),(2,3),(2,4),(2,5)
 create table users(
 	id int PRIMARY KEY AUTO_INCREMENT,
   username varchar(50),
-  password varchar(50)
+  password varchar(50),
+  role varchar(50)
 );
 
 
