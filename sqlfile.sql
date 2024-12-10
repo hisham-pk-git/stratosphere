@@ -40,15 +40,18 @@ create table subscription(
 );
 
 create table plan_endpoints(
+  id int AUTO_INCREMENT,
   plan_id int,
   api_id int,
+  PRIMARY KEY(id),
   FOREIGN KEY (plan_id) REFERENCES plan(id),
   FOREIGN KEY (api_id) REFERENCES endpoints(id)
 );
 
-insert into plan_endpoints values(1,1),(1,2),(1,3),(2,1),(2,2),(2,3),(2,4),(2,5),(2,6),
-																(3,1),(3,2),(3,3),(3,4),(3,5),(3,6),(3,7),(3,8),(3,9),
-                                (4,1),(4,2),(4,3),(4,4),(4,5),(4,6),(4,7),(4,8),(4,9);
+insert into plan_endpoints values(1,1,1),(2,1,2),(3,1,3),(4,2,1),(5,2,2),(6,2,3),(7,2,4),(8,2,5),(9,2,6),
+																(10,3,1),(11,3,2),(12,3,3),(13,3,4),(14,3,5),(15,3,6),(16,3,7),(17,3,8),(18,3,9),
+                                (19,4,1),(20,4,2),(21,4,3),(22,4,4),(23,4,5),(24,4,6),(25,4,7),(26,4,8),(27,4,9);
+
 
 create table users(
 	id int PRIMARY KEY AUTO_INCREMENT,
