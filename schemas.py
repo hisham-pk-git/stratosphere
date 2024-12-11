@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+#pydantic models used to validate request and send response data 
 class PlanResponse(BaseModel):
     id: int
     name: str
