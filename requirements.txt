@@ -4,3 +4,5 @@ sqlmodel
 sqlalchemy
 pymysql
 pydantic
+python-jose
+passlib[bcrypt]
