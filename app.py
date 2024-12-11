@@ -1,9 +1,11 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
-from models import Plan
-from schemas import PlanResponse
+from models import Plan, User
+from schemas import PlanResponse, UserCreate, UserResponse
 from typing import Any
+from passlib.context import CryptContext
+
 
 def get_db():
     db = SessionLocal()
@@ -14,9 +16,28 @@ def get_db():
 
 app = FastAPI()
 
-@app.get("/") 
-def read_root():
-    return {"Hello": "World"}
+@app.post("/register", response_model=UserResponse) 
+async def register_user(newUser: UserCreate, db: Session = Depends(get_db)) -> Any:
+    # Check if the username already exists
+    existing_user = db.query(User).filter(User.username == newUser.username).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    # Hash the password
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    
+    hashed_password = pwd_context.hash(newUser.password)
+    user = User(username=newUser.username, password=hashed_password, role=newUser.role)
+    
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return UserResponse(message="User created successfully", username=newUser.username, role=newUser.role)
+    
+
+@app.post("/login")
+async def login_user():
+    pass 
 
 @app.get("/plans")
 async def get_plans(db: Session = Depends(get_db)):

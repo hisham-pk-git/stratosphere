@@ -7,4 +7,17 @@ class PlanResponse(BaseModel):
     usage_limit: int
     
     class Config:
-        orm_mode = True
+        from_attributes  = True
+        
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: str
+
+class UserResponse(BaseModel):
+    username: str
+    role: str
+
+    class Config:
+        from_attributes = True
