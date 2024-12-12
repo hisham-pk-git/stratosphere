@@ -34,8 +34,10 @@ class PlanUpdateResponse(BaseModel):
 class PermissionRes(BaseModel):
     id: int
     name: str
-    endpoint: str
+    api_endpoint: str
     description: str
+    class Config:
+        from_attributes  = True
     
 class PermissionResponse(BaseModel):
     message: str

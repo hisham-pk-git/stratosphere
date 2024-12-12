@@ -97,7 +97,7 @@ async def get_permissions(db: Session = Depends(get_db)) -> Any:
 
 @app.post("/create-permission", response_model=PermissionResponse, dependencies=[Depends(get_admin_user)])
 async def create_permission(permission: PermissionRes, db: Session = Depends(get_db)) -> Any:
-    permission = Permission(name=permission.name, endpoint=permission.endpoint, description=permission.description)
+    permission = Permission(name=permission.name, api_endpoint=permission.api_endpoint, description=permission.description)
     db.add(permission)
     db.commit()
     db.refresh(permission)
@@ -105,18 +105,18 @@ async def create_permission(permission: PermissionRes, db: Session = Depends(get
 
 @app.put("/update-permission/{permission_id}", response_model=PermissionResponse, dependencies=[Depends(get_admin_user)])
 async def update_permission(permission_id: int, permission: PermissionRes, db: Session = Depends(get_db)) -> Any:
-    permission = db.query(Permission).filter(Permission.id == permission_id).first()
+    permissiondb = db.query(Permission).filter(Permission.id == permission_id).first()
     if not permission:
         raise HTTPException(status_code=404, detail="Permission not found")
-    if permission.name != "string" and permission.name != permission.name:
-        permission.name = permission.name
-    if permission.endpoint != "string" and permission.endpoint != permission.endpoint:
-        permission.endpoint = permission.endpoint
-    if permission.description != "string" and permission.description != permission.description:
-        permission.description = permission.description
+    if permission.name != "string" and permission.name != permissiondb.name:
+        permissiondb.name = permission.name
+    if permission.api_endpoint != "string" and permission.api_endpoint != permissiondb.api_endpoint:
+        permissiondb.api_endpoint = permission.api_endpoint
+    if permission.description != "string" and permission.description != permissiondb.description:
+        permissiondb.description = permission.description
     db.commit()
-    db.refresh(permission)
-    return PermissionResponse(message="Permission updated successfully", permission=permission)
+    db.refresh(permissiondb)
+    return PermissionResponse(message="Permission updated successfully", permission=permissiondb)
 
 @app.delete("/delete-permission/{permission_id}", dependencies=[Depends(get_admin_user)])
 async def delete_permission(permission_id: int, db: Session = Depends(get_db)) -> Any:

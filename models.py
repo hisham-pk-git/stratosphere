@@ -21,7 +21,7 @@ class Permission(Base):
     __tablename__ = "endpoints"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
-    endpoint = Column(String)
+    api_endpoint = Column(String)
     description = Column(String)
     
 class Subscription(Base):
