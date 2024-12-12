@@ -2,8 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
-from models import Plan, User
-from schemas import PlanResponse, UserCreate, UserResponse
+from models import Plan, User, PlanPermission, Permission
+from schemas import PlanResponse, UserCreate, UserResponse, PlanUpdateResponse, PermissionRes, PermissionResponse
 from typing import Any, Annotated, List
 from passlib.context import CryptContext
 from database import get_db
@@ -50,7 +50,7 @@ def login(formdata: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session
     return {"access_token": access_token, "token_type": "bearer"}   
 
 @app.get("/plans", response_model=List[PlanResponse])
-async def get_plans(token: Annotated[str, Depends(get_admin_user)], db: Session = Depends(get_db)) -> Any:
+async def get_plans(db: Session = Depends(get_db)) -> Any:
     return db.query(Plan).all()
 
 @app.post("/create-plan", response_model=PlanResponse, dependencies=[Depends(get_admin_user)])
@@ -60,3 +60,75 @@ async def create_plan(planres: PlanResponse, db: Session = Depends(get_db)) -> A
     db.commit()
     db.refresh(plan)
     return plan
+
+@app.put("/update-plan/{plan_id}", response_model=PlanUpdateResponse, dependencies=[Depends(get_admin_user)])
+async def update_plan(plan_id: int, planres: PlanResponse, db: Session = Depends(get_db)) -> Any:
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    if planres.name != "string" and planres.name != plan.name:
+        plan.name = planres.name
+    if planres.description != "string" and planres.description != plan.description:
+        plan.description = planres.description
+    if planres.usage_limit != 0 and planres.usage_limit != plan.usage_limit:
+        plan.usage_limit = planres.usage_limit
+    db.commit()
+    db.refresh(plan)
+    return PlanUpdateResponse(message="Plan updated successfully", plan=plan)
+
+@app.delete("/delete-plan/{plan_id}", dependencies=[Depends(get_admin_user)])
+async def delete_plan(plan_id: int, db: Session = Depends(get_db)) -> Any:
+    plan_permission = db.query(PlanPermission).filter(PlanPermission.plan_id == plan_id).all()
+    if plan_permission:
+        for permission in plan_permission:
+            print("Permission:", permission.id)  # Add logging
+            db.delete(permission)
+        db.commit()
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    db.delete(plan)
+    db.commit()
+    return {"message": "Plan deleted successfully"}
+
+@app.get("/permissions", response_model=List[PermissionRes], dependencies=[Depends(get_admin_user)])
+async def get_permissions(db: Session = Depends(get_db)) -> Any:
+    return db.query(Permission).all()
+
+@app.post("/create-permission", response_model=PermissionResponse, dependencies=[Depends(get_admin_user)])
+async def create_permission(permission: PermissionRes, db: Session = Depends(get_db)) -> Any:
+    permission = Permission(name=permission.name, endpoint=permission.endpoint, description=permission.description)
+    db.add(permission)
+    db.commit()
+    db.refresh(permission)
+    return PermissionResponse(message="Permission created successfully", permission=permission)
+
+@app.put("/update-permission/{permission_id}", response_model=PermissionResponse, dependencies=[Depends(get_admin_user)])
+async def update_permission(permission_id: int, permission: PermissionRes, db: Session = Depends(get_db)) -> Any:
+    permission = db.query(Permission).filter(Permission.id == permission_id).first()
+    if not permission:
+        raise HTTPException(status_code=404, detail="Permission not found")
+    if permission.name != "string" and permission.name != permission.name:
+        permission.name = permission.name
+    if permission.endpoint != "string" and permission.endpoint != permission.endpoint:
+        permission.endpoint = permission.endpoint
+    if permission.description != "string" and permission.description != permission.description:
+        permission.description = permission.description
+    db.commit()
+    db.refresh(permission)
+    return PermissionResponse(message="Permission updated successfully", permission=permission)
+
+@app.delete("/delete-permission/{permission_id}", dependencies=[Depends(get_admin_user)])
+async def delete_permission(permission_id: int, db: Session = Depends(get_db)) -> Any:
+    plan_permission = db.query(PlanPermission).filter(PlanPermission.api_id == permission_id).all()
+    if plan_permission:
+        for permission in plan_permission:
+            print("Permission:", permission.id)
+            db.delete(permission)
+        db.commit()
+    permission = db.query(Permission).filter(Permission.id == permission_id).first()
+    if not permission:
+        raise HTTPException(status_code=404, detail="Permission not found")
+    db.delete(permission)
+    db.commit()
+    return {"message": "Permission deleted successfully"}

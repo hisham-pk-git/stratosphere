@@ -27,3 +27,17 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
         
+class PlanUpdateResponse(BaseModel):
+    message: str
+    plan: PlanResponse
+    
+class PermissionRes(BaseModel):
+    id: int
+    name: str
+    endpoint: str
+    description: str
+    
+class PermissionResponse(BaseModel):
+    message: str
+    permission: PermissionRes
+        

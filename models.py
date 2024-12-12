@@ -35,5 +35,5 @@ class PlanPermission(Base):
     __tablename__ = "plan_endpoints"
     id = Column(Integer, primary_key=True, index=True)
     plan_id = Column(Integer, ForeignKey("plan.id"))
-    permission_id = Column(Integer, ForeignKey("endpoints.id"))
+    api_id = Column(Integer, ForeignKey("endpoints.id"))
     
