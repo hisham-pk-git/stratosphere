@@ -16,9 +16,14 @@ class UserCreate(BaseModel):
     password: str
     role: str
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
 class UserResponse(BaseModel):
     username: str
     role: str
 
     class Config:
         from_attributes = True
+        
