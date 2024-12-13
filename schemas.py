@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 
 #pydantic models used to validate request and send response data 
 class PlanResponse(BaseModel):
@@ -49,4 +50,39 @@ class PermissionRes(BaseModel):
 class PermissionResponse(BaseModel):
     message: str
     permission: PermissionRes
+
+class SubscriptionCreate(BaseModel):
+    user_id: int  
+    plan_id: int 
+
+    class Config:
+        orm_mode = True  
+
+
+class SubscriptionResponse(BaseModel):
+    user_id: int  
+    plan_id: int  
+    usage: int  
+
+    class Config:
+        orm_mode = True  
+
+
+class UsageResponse(BaseModel):
+    user_id: int   
+    usage: int  
+
+    class Config:
+        orm_mode = True  
+
+class Endpoint(BaseModel):
+    name: str
+    endpoint: str        
+
+class AccessControlResponse(BaseModel):
+    access_status: str
+    plan_name: str
+    plan_description: str
+    accessible_endpoints: List[Endpoint]        
+
         

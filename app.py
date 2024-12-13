@@ -2,10 +2,11 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
-from models import Plan, User, PlanPermission, Permission
-from schemas import PlanResponse, UserCreate, UserResponse, PlanUpdateResponse, PermissionRes, PermissionResponse, PlanDetails
+from models import Plan, User, PlanPermission, Permission, Subscription
+from schemas import PlanResponse, UserCreate, UserResponse, PlanUpdateResponse, PermissionRes, PermissionResponse, PlanDetails, SubscriptionCreate, SubscriptionResponse, UsageResponse, AccessControlResponse
 from typing import Any, Annotated, List
 from passlib.context import CryptContext
+from cloud_services import router as cloud_services_router
 from database import get_db
 from auth import (
     create_access_token,
@@ -19,6 +20,7 @@ from auth import (
 
 
 app = FastAPI()
+app.include_router(cloud_services_router)
 
 @app.post("/register", response_model=UserResponse) 
 async def register_user(newUser: UserCreate, db: Session = Depends(get_db)) -> Any:
@@ -140,3 +142,154 @@ async def delete_permission(permission_id: int, db: Session = Depends(get_db)) -
     db.delete(permission)
     db.commit()
     return {"message": "Permission deleted successfully"}
+
+
+# --------User Subscription Handling-----!!
+
+# POST /subscriptions (Create a Subscription)
+@app.post("/subscriptions", response_model=SubscriptionResponse, dependencies=[Depends(get_current_user)])
+async def create_subscription(subscription_data: SubscriptionCreate, db: Session = Depends(get_db)):
+    # Validate user existence
+    user = db.query(User).filter(User.id == subscription_data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Validate plan existence
+    plan = db.query(Plan).filter(Plan.id == subscription_data.plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    # Check if user already has a subscription
+    existing_subscription = db.query(Subscription).filter(Subscription.user_id == subscription_data.user_id).first()
+    if existing_subscription:
+        raise HTTPException(status_code=400, detail="User already subscribed to a plan")
+
+    # Create new subscription
+    new_subscription = Subscription(user_id=subscription_data.user_id, plan_id=subscription_data.plan_id, usage=0)
+    db.add(new_subscription)
+    db.commit()
+    db.refresh(new_subscription)
+
+    return SubscriptionResponse(
+        user_id=new_subscription.user_id,
+        plan_id=new_subscription.plan_id,
+        usage=new_subscription.usage
+    )
+
+# GET /subscriptions/{userId}
+@app.get("/subscriptions/{user_id}", response_model=SubscriptionResponse, dependencies=[Depends(get_current_user)])
+def get_subscription(user_id: int, db: Session = Depends(get_db)):
+    subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    return SubscriptionResponse(
+        user_id=subscription.user_id,
+        plan_id=subscription.plan_id,
+        usage=subscription.usage
+    )
+
+# GET /subscriptions/{userId}/usage
+@app.get("/subscriptions/{user_id}/usage", response_model=UsageResponse, dependencies=[Depends(get_current_user)])
+def get_subscription_usage(user_id: int, db: Session = Depends(get_db)):
+    subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    return UsageResponse(
+        user_id=subscription.user_id,
+        usage=subscription.usage
+    )
+
+# Assign/Modify User Plan
+@app.put("/subscriptions/{user_id}/{plan_id}", response_model=SubscriptionResponse, dependencies=[Depends(get_admin_user)])
+def update_subscription(user_id: int, plan_id: int, db: Session = Depends(get_db)):
+    # Fetch the user's subscription
+    subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    # Validate new plan existence
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    # Update the subscription
+    subscription.plan_id = plan_id
+    db.commit()
+    db.refresh(subscription)
+
+    return SubscriptionResponse(
+        user_id=subscription.user_id,
+        plan_id=subscription.plan_id,
+        usage=subscription.usage
+    )
+
+# ----Access Control---!!
+
+# Return the number of api requests made by the user by including the plan details. 
+@app.get("/access/{user_id}/{api_request}", response_model=AccessControlResponse)
+def check_access_permission(user_id: int, api_request: str, db: Session = Depends(get_db)):
+    # Fetch the user's subscription
+    subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found for the user")
+
+    # Fetch the plan details
+    plan = db.query(Plan).filter(Plan.id == subscription.plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found for the subscription")
+
+    # Fetch the allowed endpoints for the plan
+    allowed_endpoints = db.query(Permission).join(PlanPermission, Permission.id == PlanPermission.api_id) \
+                        .filter(PlanPermission.plan_id == subscription.plan_id).all()
+    
+    # Check if the requested API is within the allowed endpoints
+    endpoint_match = next((ep for ep in allowed_endpoints if ep.api_endpoint.strip("/") in api_request), None)
+
+    # Determine access status
+    access_status = "You have access to this endpoint" if endpoint_match else "You don't have access to this endpoint"
+
+    # Prepare response using the AccessControlResponse model
+    response = AccessControlResponse(
+        access_status=access_status,
+        plan_name=plan.name,
+        plan_description=plan.description,
+        accessible_endpoints=[{"name": ep.name, "endpoint": ep.api_endpoint} for ep in allowed_endpoints]
+    )
+    return response
+
+# ---Usage Tracking ---!!
+
+# Return the plan limit subscribed by the user along with how mumanych attempts left for the user.
+@app.get("/usage/{user_id}")
+def track_api_request(user_id: int, db: Session = Depends(get_db)):
+    # Fetch the user's subscription
+    subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found for the user")
+
+    # Fetch the plan details
+    plan = db.query(Plan).filter(Plan.id == subscription.plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found for the subscription")
+    
+    # Calculate remaining attempts (if usage limit is not unlimited)
+    if plan.usage_limit != 0:
+        remaining_attempts = plan.usage_limit - subscription.usage
+    else:
+        remaining_attempts = "Unlimited"  # If the plan has unlimited usage
+
+    # Return the number of API requests made by the user and the plan details
+    response = {
+        "user_id": user_id,
+        "api_request_count": subscription.usage, 
+        "plan_name": plan.name,
+        "plan_description": plan.description,
+        "usage_limit": plan.usage_limit,
+        "remaining_attempts": remaining_attempts
+    }
+    
+    return response
+
+
