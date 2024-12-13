@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from models import Plan, Permission, PlanPermission
 
 
-# ----Access Control----!!
+# ----Access Control---- & Usage Tracking and Limit Enforcement!!
 
 # Function to check access and usage
 def check_access_and_usage(user_id: int, api_endpoint: str, db: Session):
@@ -38,7 +38,7 @@ def check_access_and_usage(user_id: int, api_endpoint: str, db: Session):
     
     return
 
-# Function to increment usage
+# Function to track usage (User request tracking)
 def increment_usage(user_id: int, db: Session):
     subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
     if subscription:
