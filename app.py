@@ -176,7 +176,7 @@ async def create_subscription(subscription_data: SubscriptionCreate, db: Session
         usage=new_subscription.usage
     )
 
-# GET /subscriptions/{userId}
+# View User Subscription Details
 @app.get("/subscriptions/{user_id}", response_model=SubscriptionResponse, dependencies=[Depends(get_current_user)])
 def get_subscription(user_id: int, db: Session = Depends(get_db)):
     subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
@@ -189,7 +189,7 @@ def get_subscription(user_id: int, db: Session = Depends(get_db)):
         usage=subscription.usage
     )
 
-# GET /subscriptions/{userId}/usage
+# View User Usage Statistics
 @app.get("/subscriptions/{user_id}/usage", response_model=UsageResponse, dependencies=[Depends(get_current_user)])
 def get_subscription_usage(user_id: int, db: Session = Depends(get_db)):
     subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
@@ -228,7 +228,7 @@ def update_subscription(user_id: int, plan_id: int, db: Session = Depends(get_db
 # ----Access Control---!!
 
 # Return the number of api requests made by the user by including the plan details. 
-@app.get("/access/{user_id}/{api_request}", response_model=AccessControlResponse)
+@app.get("/access/{user_id}/{api_request}", response_model=AccessControlResponse, dependencies=[Depends(get_current_user)])
 def check_access_permission(user_id: int, api_request: str, db: Session = Depends(get_db)):
     # Fetch the user's subscription
     subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
@@ -261,8 +261,8 @@ def check_access_permission(user_id: int, api_request: str, db: Session = Depend
 
 # ---Usage Tracking ---!!
 
-# Return the plan limit subscribed by the user along with how mumanych attempts left for the user.
-@app.get("/usage/{user_id}")
+# Return the plan limit subscribed by the user along with how many attempts left for the user.
+@app.get("/usage/{user_id}", dependencies=[Depends(get_current_user)])
 def track_api_request(user_id: int, db: Session = Depends(get_db)):
     # Fetch the user's subscription
     subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
