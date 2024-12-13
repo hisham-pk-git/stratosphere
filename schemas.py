@@ -10,6 +10,13 @@ class PlanResponse(BaseModel):
     class Config:
         from_attributes  = True
         
+class PlanDetails(BaseModel):
+    id: int
+    name: str
+    description: str
+    endpoints: list
+    usage_limit: int
+        
 
 class UserCreate(BaseModel):
     username: str

@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from models import Plan, User, PlanPermission, Permission
-from schemas import PlanResponse, UserCreate, UserResponse, PlanUpdateResponse, PermissionRes, PermissionResponse
+from schemas import PlanResponse, UserCreate, UserResponse, PlanUpdateResponse, PermissionRes, PermissionResponse, PlanDetails
 from typing import Any, Annotated, List
 from passlib.context import CryptContext
 from database import get_db
@@ -49,9 +49,17 @@ def login(formdata: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session
     print("Access token:", access_token)  # Add logging
     return {"access_token": access_token, "token_type": "bearer"}   
 
-@app.get("/plans", response_model=List[PlanResponse])
+@app.get("/plans", response_model=List[PlanDetails])
 async def get_plans(db: Session = Depends(get_db)) -> Any:
-    return db.query(Plan).all()
+    plans = db.query(Plan).all()
+    plan_details = []
+    for plan in plans:
+        plan_permission = db.query(PlanPermission).filter(PlanPermission.plan_id == plan.id).all()
+        permission_list = []
+        for permission in plan_permission:
+            permission_list.append(db.query(Permission).filter(Permission.id == permission.api_id).first().api_endpoint)
+        plan_details.append(PlanDetails(id=plan.id, name=plan.name, description=plan.description, usage_limit=plan.usage_limit, endpoints=permission_list))
+    return plan_details
 
 @app.post("/create-plan", response_model=PlanResponse, dependencies=[Depends(get_admin_user)])
 async def create_plan(planres: PlanResponse, db: Session = Depends(get_db)) -> Any:
