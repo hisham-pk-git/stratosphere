@@ -56,7 +56,7 @@ class SubscriptionCreate(BaseModel):
     plan_id: int 
 
     class Config:
-        orm_mode = True  
+        from_attributes = True  
 
 
 class SubscriptionResponse(BaseModel):
@@ -65,7 +65,7 @@ class SubscriptionResponse(BaseModel):
     usage: int  
 
     class Config:
-        orm_mode = True  
+        from_attributes = True  
 
 
 class UsageResponse(BaseModel):
@@ -73,7 +73,7 @@ class UsageResponse(BaseModel):
     usage: int  
 
     class Config:
-        orm_mode = True  
+        from_attributes = True  
 
 class Endpoint(BaseModel):
     name: str
