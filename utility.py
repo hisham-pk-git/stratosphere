@@ -2,6 +2,8 @@ from fastapi import HTTPException
 from models import Subscription
 from sqlalchemy.orm import Session
 from models import Plan, Permission, PlanPermission
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 
 # ----Access Control---- & Usage Tracking and Limit Enforcement!!
@@ -39,10 +41,11 @@ def check_access_and_usage(user_id: int, api_endpoint: str, db: Session):
     return
 
 # Function to track usage (User request tracking)
-def increment_usage(user_id: int, db: Session):
-    subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+async def increment_usage(user_id: int, db: AsyncSession):
+    result = await db.execute(select(Subscription).filter(Subscription.user_id == user_id))
+    subscription = result.scalars().first()
     if subscription:
-        subscription.usage += 1  # Increment usage count
-        db.commit()
+        subscription.usage += 1
+        await db.commit()
     else:
         raise HTTPException(status_code=404, detail="Subscription not found")
