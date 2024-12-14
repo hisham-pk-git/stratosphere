@@ -26,3 +26,6 @@ Implemented authentication and authorization using JWT. Related implementation i
 In the terminal, run the following command. The application will run on localhost port 8000
 > uvicorn app:app --reload
 
+## Endpoints:
+![image](image.png)
+![image](image-1.png)
