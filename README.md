@@ -9,8 +9,9 @@ Cloud Service Access Management System
 
 ## Installation and setup:
 Instal the packages listed in requirements.txt file in the terminal using
-> pip install -r /path/to/requirements.txt
-
+``` 
+pip install -r /path/to/requirements.txt
+```
 ## Database Configuration:
 Configure the MySQL database using the below code
 ```
@@ -24,8 +25,9 @@ Implemented authentication and authorization using JWT. Related implementation i
 
 ## Run the application:
 In the terminal, run the following command. The application will run on localhost port 8000
-> uvicorn app:app --reload
-
+```
+uvicorn app:app --reload
+```
 ## Endpoints:
 ![image](image.png)
 ![image](image-1.png)
