@@ -71,6 +71,20 @@ async def create_plan(planres: PlanResponse, db: Session = Depends(get_db)) -> A
     db.refresh(plan)
     return plan
 
+@app.post("/map-permission", dependencies=[Depends(get_admin_user)])
+async def map_permission(plan_id: int, permission_id: int, db: Session = Depends(get_db)) -> Any:
+    plan = db.query(Plan).filter(Plan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    permission = db.query(Permission).filter(Permission.id == permission_id).first()
+    if not permission:
+        raise HTTPException(status_code=404, detail="Permission not found")
+    plan_permission = PlanPermission(plan_id=plan_id, api_id=permission_id)
+    db.add(plan_permission)
+    db.commit()
+    db.refresh(plan_permission)
+    return {"message": "Permission mapped to plan successfully"}
+
 @app.put("/update-plan/{plan_id}", response_model=PlanUpdateResponse, dependencies=[Depends(get_admin_user)])
 async def update_plan(plan_id: int, planres: PlanResponse, db: Session = Depends(get_db)) -> Any:
     plan = db.query(Plan).filter(Plan.id == plan_id).first()
