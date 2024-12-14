@@ -4,8 +4,8 @@ Cloud Service Access Management System
 ## CPSC 449 Web Backend Engineering 
 
 ## Authors: 
-         Kiran Sukumar, kiransukumar@csu.fullerton.edu
-         Hisham Panamthodi Kajahussain, hisham.pk@csu.fullerton.edu
+> Kiran Sukumar, kiransukumar@csu.fullerton.edu
+> Hisham Panamthodi Kajahussain, hisham.pk@csu.fullerton.edu
 
 ## Installation and setup:
 Instal the packages listed in requirements.txt file in the terminal using
