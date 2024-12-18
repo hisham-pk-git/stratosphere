@@ -32,3 +32,7 @@ uvicorn app:app --reload
 ## Endpoints:
 ![image](image.png)
 ![image](image-1.png)
+
+## Video Demonstration:
+[Demo](## Video Demonstration:
+[Demo](https://youtu.be/q9MIhUDPh_g)
